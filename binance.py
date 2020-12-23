@@ -4,11 +4,11 @@ Created on Mon Dec  7 10:50:00 2020
 @author: nicopacheco121
 """
 
-import datetime as dt
 import requests
 import hmac
 import hashlib
 import keys
+
 
 try:
     from urllib import urlencode
@@ -31,11 +31,10 @@ def system_status():
 
 
 # DAILY ACCOUNT SNAPSHOT (RESUMEN DIARIO DE LA CUENTA)
+    
 def account_snapshot(key,secret):
     url ='https://api.binance.com/sapi/v1/accountSnapshot'
-
-    # timestamp (le tuve que sumar 15 segundos, no se por que)
-    ts = int(dt.datetime.timestamp(dt.datetime.now() + dt.timedelta(seconds=15)) * 1000)
+    ts=horaservidor()
     recvWindow = 5000
 
     params = {'recvWindow': 10000, "type": 'SPOT', 'timestamp': ts}
@@ -53,10 +52,20 @@ def account_snapshot(key,secret):
 
     return js
 
+def horaservidor():
+    base='https://api.binance.com'
+    endpoint='/api/v3/time'
+    url=base+endpoint
+    params = {}
+    r = requests.get(url, params=params)
+    js = r.json()
+    return js['serverTime']
+
 #Caso de Uso.
-#print(account_snapshot(keys.BINANCE_KEY,keys.BINANCE_SECRET))
+
 
 
 if __name__ == '__main__':
+
     data_cuenta = account_snapshot(key= keys.BINANCE_KEY, secret=keys.BINANCE_SECRET)
     print(data_cuenta)
