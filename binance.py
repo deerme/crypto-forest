@@ -11,7 +11,7 @@ import requests
 import hmac
 import hashlib
 import keys
-
+import time
 
 try:
     from urllib import urlencode
@@ -56,7 +56,30 @@ def account_snapshot(key,secret):
 
     return js
 
-# ENVIO DE OPERARION DE PRUEBA
+# Current Open Orders (USER_DATA)
+
+def current_open_Orders(key,secret):
+    endpoint='/api/v3/openOrders'
+    url=base+endpoint 
+    ts=horaservidor()
+
+    params = {'timestamp': ts}
+
+    # signature
+    h = urlencode(params)
+    b = bytearray()
+    b.extend(secret.encode())
+    signature = hmac.new(b, msg=h.encode('utf-8'), digestmod=hashlib.sha256).hexdigest()
+    params['signature'] = signature
+
+    headers = {'X-MBX-APIKEY': key}
+    r = requests.get(url=url, params=params, headers=headers, verify=True)
+    js = r.json()
+
+    return js
+
+# Test New Order (TRADE) (ENVIO DE OPERARION DE PRUEBA)
+
 def tradeTest(key,secret,moneda1='BTC',moneda2='USDT',side='SELL/BUY',
               tipo='LIMIT/MARKET',timeinforce='GTC/IOC/FOK',quantity='NUM',price='NUM'):
     '''
@@ -147,12 +170,18 @@ if __name__ == '__main__':
                           tipo='MARKET',quantity=0.1)
     
     print(pruebaTradeMarket)
+    time.sleep(2)
+    
     print('Ejemplo de Compra a precio Limite')
     ask,bid=dato_actual()
     pruebaTradeLimit=tradeTest(key= keys.BINANCE_KEY, secret=keys.BINANCE_SECRET,
                           moneda1='BTC',moneda2='USDT',side='SELL',
-                          tipo='LIMIT',timeinforce='GTC',quantity=0.1,price=bid)
-    
+                          tipo='LIMIT',timeinforce='GTC',quantity=0.1,price=ask)
     print(pruebaTradeLimit)
+    time.sleep(2)
+
+    print('Ejemplo de Ordenes abiertas')
+    ordenesabiertas=current_open_Orders(key= keys.BINANCE_KEY, secret=keys.BINANCE_SECRET)
+    print(ordenesabiertas)
     
     
