@@ -57,11 +57,47 @@ def account_snapshot(key,secret):
     return js
 
 # ENVIO DE OPERARION DE PRUEBA
-def tradeTest(key,secret):
+def tradeTest(key,secret,moneda1='BTC',moneda2='USDT',side='SELL/BUY',
+              tipo='LIMIT/MARKET',timeinforce='GTC/IOC/FOK',quantity='NUM',price='NUM'):
+    '''
+    Type	              Additional mandatory parameters
+    LIMIT	              timeInForce, quantity, price
+    MARKET	              quantity or quoteOrderQty
+    STOP_LOSS	          quantity, stopPrice
+    STOP_LOSS_LIMIT	      timeInForce, quantity, price, stopPrice
+    TAKE_PROFIT	          quantity, stopPrice
+    TAKE_PROFIT_LIMIT	  timeInForce, quantity, price, stopPrice
+    LIMIT_MAKER	          quantity, price
+    
+    -------------------------------------------------------------------------------
+    Time in force (timeInForce):
+    
+    This sets how long an order will be active before expiration.
+    
+    Status	Description
+    GTC	    Good Til Canceled
+            An order will be on the book unless the order is canceled.
+    IOC	    Immediate Or Cancel
+            An order will try to fill the order as much as it can before the order expires.
+    FOK	    Fill or Kill
+            An order will expire if the full order cannot be filled upon execution.
+    '''
+
     endpoint='/api/v3/order/test'
+    # para tradear
+    # endpoint='/api/v3/order'
     url=base+endpoint    
+    symbol=moneda1+moneda2
     ts=horaservidor()
-    params = {'symbol':'BTCUSDT','quantity':5, 'side':'SELL','type':'MARKET','timestamp':ts}
+
+    if (tipo=='LIMIT'):
+        params = {'symbol': symbol,'timestamp':ts,'side':side,'type':tipo,
+                  'timeInForce':timeinforce,'quantity':quantity,'price':price}
+    if (tipo=='MARKET'):
+        params = {'symbol': symbol,'timestamp':ts,'side':side,'type':tipo,
+                  'quantity':quantity}
+    
+    
     # signature
     h = urlencode(params)
     b = bytearray()
@@ -73,7 +109,23 @@ def tradeTest(key,secret):
     r = requests.post(url=url, params=params, headers=headers, verify=True)
     return r
 
+def dato_actual(moneda1='BTC', moneda2='USDT'):
+    '''data=dato_actual(moneda1='BTC', moneda2='USDT')'''
+    endpoint='/api/v3/depth'
+    url=base+endpoint    
+    #Creo la variable Symbol
+    symbol=moneda1+moneda2
 
+    params = {'symbol':symbol,'limit':5}
+    try:
+        r = requests.get(url, params=params)
+        js = r.json()
+        ask_PAR=js.get('asks')[0][0]   
+        bid_PAR=js.get('bids')[0][0]
+        return (ask_PAR,bid_PAR)
+    except:
+        print(f'Error al intentar bajar los datos del simbolo {moneda1}-{moneda2}')
+        return (0,0)
 
 def horaservidor():
     endpoint='/api/v3/time'
@@ -89,6 +141,18 @@ if __name__ == '__main__':
     print('Estado de la cuenta:')
     data_cuenta = account_snapshot(key= keys.BINANCE_KEY, secret=keys.BINANCE_SECRET)
     print(data_cuenta)
-    pruebaTrade=tradeTest(key= keys.BINANCE_KEY, secret=keys.BINANCE_SECRET)
-    print(pruebaTrade)
-
+    print('Ejemplo de Compra a precio de Mercado')
+    pruebaTradeMarket=tradeTest(key= keys.BINANCE_KEY, secret=keys.BINANCE_SECRET,
+                          moneda1='BTC',moneda2='USDT',side='SELL',
+                          tipo='MARKET',quantity=0.1)
+    
+    print(pruebaTradeMarket)
+    print('Ejemplo de Compra a precio Limite')
+    ask,bid=dato_actual()
+    pruebaTradeLimit=tradeTest(key= keys.BINANCE_KEY, secret=keys.BINANCE_SECRET,
+                          moneda1='BTC',moneda2='USDT',side='SELL',
+                          tipo='LIMIT',timeinforce='GTC',quantity=0.1,price=bid)
+    
+    print(pruebaTradeLimit)
+    
+    
