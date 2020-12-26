@@ -159,7 +159,7 @@ def horaservidor():
     return js['serverTime']
 
 
-#Caso de Uso.
+#Casos de Uso.
 if __name__ == '__main__':
     print('Estado de la cuenta:')
     data_cuenta = account_snapshot(key= keys.BINANCE_KEY, secret=keys.BINANCE_SECRET)
