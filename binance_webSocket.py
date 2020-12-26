@@ -42,8 +42,11 @@ def wPuntas(moneda1='btc',moneda2='usdt',depth='5/10/20'):
     conn.recv()
     
     for i in range(4):
-        data=conn.recv()
-        df=pd.DataFrame(json.loads(data))
+        try:
+            data=conn.recv()
+            df=pd.DataFrame(json.loads(data))
+        except:
+            pass
         print(df,'\n')    
     
 #Casos de Uso.
