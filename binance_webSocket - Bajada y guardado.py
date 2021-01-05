@@ -79,11 +79,9 @@ def GuardoDB(data,broker='binanceticks'):
           `id` int(11) NOT NULL AUTO_INCREMENT,
           `ticker` varchar(20) DEFAULT '',
           `time` timestamp NULL DEFAULT NULL,
-          `open` float(10) DEFAULT NULL,
-          `high` float(10) DEFAULT NULL,
-          `low` float(10) DEFAULT NULL,
-          `close` float(10) DEFAULT NULL,
-          `volume` float(10) DEFAULT NULL,
+          `tradeid` float(10) DEFAULT NULL,
+          `price` float(10) DEFAULT NULL,
+          `quantity` float(10) DEFAULT NULL,
           PRIMARY KEY (`id`),
           UNIQUE KEY `idx_ticker_time` (`ticker`,`time`)
         ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=latin1;
