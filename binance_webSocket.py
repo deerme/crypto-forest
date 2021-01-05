@@ -52,8 +52,8 @@ def wPuntas(moneda1='btc',moneda2='usdt',depth='5/10/20'):
 #Casos de Uso.
 if __name__ == '__main__':
     #Uso uno u otro, sino da un error de indices.
-    #print('Suscripcion al libro de un ticker')
-    #wLibroTicker() 
+    print('Suscripcion al libro de un ticker')
+    wLibroTicker() 
     
-    print('Suscripcion al libro de puntas')
-    wPuntas(depth=5)
+    #print('Suscripcion al libro de puntas')
+    #wPuntas(depth=5)
