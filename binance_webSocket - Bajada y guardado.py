@@ -8,8 +8,10 @@ import json
 #Funcion Guardado en DB
 from sqlalchemy import create_engine
 import db
+# Hilos
+import threading
+import time
 
-ultimo_dato={}
 
 '''
 https://binance-docs.github.io/apidocs/spot/en/#individual-symbol-book-ticker-streams
@@ -29,11 +31,13 @@ Update Speed: Real-time
 
 '''
 
-def wLibroTicker(moneda1='btc',moneda2='usdt',ultimo_dato=ultimo_dato):
+def wLibroTicker(moneda1='btc',moneda2='usdt'):
     '''
     Suscripcion al libro de un ticker
     '''
-    
+    #Creo la variable global
+    global ultimo_dato
+    ultimo_dato={}
     #Creamos la conexion.
     wss=f'wss://stream.binance.com:9443/ws/{moneda1}{moneda2}@bookTicker'
     conn=ws.create_connection(wss)
@@ -67,7 +71,8 @@ def wLibroTicker(moneda1='btc',moneda2='usdt',ultimo_dato=ultimo_dato):
             print('Dato nulo')
 
 
-#no funcional
+
+    
 def GuardoDB(data,broker='binanceticks'):
     # conexion a la DB
     db_connection = create_engine(db.BD_CONNECTION)
@@ -79,20 +84,49 @@ def GuardoDB(data,broker='binanceticks'):
           `id` int(11) NOT NULL AUTO_INCREMENT,
           `ticker` varchar(20) DEFAULT '',
           `time` timestamp NULL DEFAULT NULL,
-          `tradeid` float(10) DEFAULT NULL,
+          `tradeid` int(11) NULL DEFAULT NULL,
           `price` float(10) DEFAULT NULL,
           `quantity` float(10) DEFAULT NULL,
           PRIMARY KEY (`id`),
-          UNIQUE KEY `idx_ticker_time` (`ticker`,`time`)
+          UNIQUE KEY `idx_ticker_tradeid` (`ticker`,`tradeid`)
         ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=latin1;
         '''
 
     db_connection.execute(create_table)
        
     
-    data.to_sql(con=db_connection, name=broker, if_exists='append')
+    data.to_sql(con=db_connection, name=broker, if_exists='append',index=False)
 
 
+            
+def guardo():
+    global ultimo_dato
+    while True:
+        #cada 5 minutos guardo info.
+        time.sleep(10)
+    
+        
+        if (ultimo_dato!={}):
+            #copio el diccionario, esto me permite seguir sumando datos a ultimo_dato
+            ultima_base=ultimo_dato.copy()
+        
+            #Preparo el DF, desde el diccionario.
+            df = pd.DataFrame([key for key in ultima_base.keys()], columns=['tradeid'])
+            df['ticker']=[value['s'] if 's' in value.keys() else None for value in ultima_base.values()]
+            df['price']=[value['p'] if 'p' in value.keys() else None for value in ultima_base.values()]
+            df['quantity']=[value['q'] if 'q' in value.keys() else None for value in ultima_base.values()]
+            df['time_ms']=[value['T'] if 'T' in value.keys() else None for value in ultima_base.values()]
+            #convierto la fecha
+            df['time'] = pd.to_datetime(df.time_ms, unit='ms')
+            # Elimino columnas que no quiero
+            df.drop(['time_ms'],axis=1,inplace=True)
+            #Guardo en la base de datos.
+            GuardoDB(data=df)
+            #Elimino en ultimo_dato, los tradeid ya guardados.
+            for key in ultima_base.keys(): del ultimo_dato[key]
+
+
+        
 '''
 https://binance-docs.github.io/apidocs/spot/en/#trade-streams
 
@@ -118,11 +152,14 @@ el 'Trade ID' como clave.
 '''
 
 
-def wtick(moneda1='btc',moneda2='usdt',ultimo_dato=ultimo_dato):
+def wtick(moneda1='btc',moneda2='usdt'):
     '''
     Suscripcion al libro de un ticker
     '''
-    
+    #Creo la variable global
+    global ultimo_dato
+    ultimo_dato={}
+   
     #Creamos la conexion.
     wss=f'wss://stream.binance.com:9443/ws/{moneda1}{moneda2}@trade'
     conn=ws.create_connection(wss)
@@ -136,6 +173,8 @@ def wtick(moneda1='btc',moneda2='usdt',ultimo_dato=ultimo_dato):
     
     #Recibimos datos
     while True:
+#    contador=0
+#    while contador<5:
         try:
             #Tomo el dato
             data=conn.recv()
@@ -158,12 +197,18 @@ def wtick(moneda1='btc',moneda2='usdt',ultimo_dato=ultimo_dato):
             #Existe la posibilidad de que data sea nula
             #print('Dato nulo')
             pass
+#        contador+=1
             
 #Casos de Uso.
 if __name__ == '__main__':
     #Uso uno u otro, sino da un error de indices.
     #print('Suscripcion al libro de un ticker')
     #wLibroTicker() 
+#    wtick()
+#    guardo()
     
-    wtick()
 
+    hilo1 = threading.Thread(target=wtick)
+    hilo2 = threading.Thread(target=guardo) 
+    hilo1.start()
+    hilo2.start()
